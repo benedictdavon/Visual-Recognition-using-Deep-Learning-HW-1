@@ -18,12 +18,14 @@ class FocalLoss(nn.Module):
         weight: Optional[torch.Tensor] = None,
         reduction: str = "mean",
     ):
+        """Initialize focal-loss hyperparameters and optional class weights."""
         super().__init__()
         self.gamma = gamma
         self.weight = weight
         self.reduction = reduction
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """Compute focal loss from logits and hard class labels."""
         ce = F.cross_entropy(logits, targets, weight=self.weight, reduction="none")
         pt = torch.exp(-ce)
         focal = ((1 - pt) ** self.gamma) * ce
@@ -44,17 +46,21 @@ class BalancedSoftmaxLoss(nn.Module):
         label_smoothing: float = 0.0,
         reduction: str = "mean",
     ) -> None:
+        """Initialize Balanced Softmax with dataset-level class counts."""
         super().__init__()
         if class_counts.ndim != 1:
             raise ValueError("class_counts must be a 1D tensor.")
         if torch.any(class_counts <= 0):
-            raise ValueError("Balanced Softmax requires strictly positive class_counts for every class.")
+            raise ValueError(
+                "Balanced Softmax requires strictly positive class_counts for every class."
+            )
         self.register_buffer("log_class_counts", class_counts.float().log())
         self.weight = weight
         self.label_smoothing = float(label_smoothing)
         self.reduction = reduction
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """Apply Balanced Softmax to hard-label classification logits."""
         adjusted_logits = logits + self.log_class_counts.unsqueeze(0)
         return F.cross_entropy(
             adjusted_logits,
@@ -76,11 +82,14 @@ class LogitAdjustedCrossEntropyLoss(nn.Module):
         label_smoothing: float = 0.0,
         reduction: str = "mean",
     ) -> None:
+        """Initialize logit-adjusted cross-entropy parameters."""
         super().__init__()
         if class_counts.ndim != 1:
             raise ValueError("class_counts must be a 1D tensor.")
         if torch.any(class_counts <= 0):
-            raise ValueError("Logit-adjusted CE requires strictly positive class_counts for every class.")
+            raise ValueError(
+                "Logit-adjusted CE requires strictly positive class_counts for every class."
+            )
         priors = class_counts.float() / class_counts.sum()
         self.register_buffer("log_priors", priors.log())
         self.tau = float(tau)
@@ -89,6 +98,7 @@ class LogitAdjustedCrossEntropyLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """Apply train-prior logit adjustment before cross-entropy."""
         adjusted_logits = logits + (self.tau * self.log_priors.unsqueeze(0))
         return F.cross_entropy(
             adjusted_logits,
@@ -114,6 +124,7 @@ class LDAMLoss(nn.Module):
         total_epochs: Optional[int] = None,
         current_epoch: int = 0,
     ) -> None:
+        """Initialize LDAM margins and deferred-reweighting state."""
         super().__init__()
         if class_counts.ndim != 1:
             raise ValueError("class_counts must be a 1D tensor.")
@@ -134,7 +145,11 @@ class LDAMLoss(nn.Module):
         self.reduction = reduction
         self.total_epochs = int(total_epochs) if total_epochs is not None else None
 
-        if weight is not None and deferred_reweighting and deferred_reweighting.get("enabled", False):
+        if (
+            weight is not None
+            and deferred_reweighting
+            and deferred_reweighting.get("enabled", False)
+        ):
             raise ValueError(
                 "loss.class_weights cannot be combined with loss.deferred_reweighting.enabled for LDAM."
             )
@@ -227,6 +242,7 @@ class LDAMLoss(nn.Module):
         }
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """Apply margin-adjusted logits and cross-entropy reduction."""
         if targets.ndim != 1:
             raise ValueError("LDAM expects hard 1D targets.")
         if logits.ndim != 2:
@@ -249,9 +265,11 @@ class SoftTargetCrossEntropy(nn.Module):
     """Cross-entropy for soft labels (e.g., mixup/cutmix)."""
 
     def __init__(self):
+        """Initialize a stateless soft-target cross-entropy module."""
         super().__init__()
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """Compute cross-entropy when targets are class-probability vectors."""
         log_probs = F.log_softmax(logits, dim=-1)
         return torch.sum(-targets * log_probs, dim=-1).mean()
 
@@ -270,7 +288,9 @@ def _validate_class_counts(
     if class_counts.ndim != 1:
         raise ValueError("class_counts must be a 1D tensor.")
     if torch.any(class_counts <= 0):
-        raise ValueError(f"Loss '{loss_name}' requires strictly positive class counts for all classes.")
+        raise ValueError(
+            f"Loss '{loss_name}' requires strictly positive class counts for all classes."
+        )
     return class_counts
 
 
@@ -297,7 +317,9 @@ def _validate_deferred_reweighting(
     if loss_name != "ldam":
         raise ValueError("loss.deferred_reweighting is only supported when loss.name is 'ldam'.")
     if total_epochs is None:
-        raise ValueError("LDAM-DRW requires total_epochs so the late-stage boundary can be validated.")
+        raise ValueError(
+            "LDAM-DRW requires total_epochs so the late-stage boundary can be validated."
+        )
 
     total_epochs = int(total_epochs)
     if total_epochs <= 0:
@@ -342,7 +364,9 @@ def _compute_deferred_reweighting_weights(
     return weights
 
 
-def get_loss_runtime_metadata(loss_cfg: Dict[str, Any], criterion: Optional[nn.Module] = None) -> Dict[str, Any]:
+def get_loss_runtime_metadata(
+    loss_cfg: Dict[str, Any], criterion: Optional[nn.Module] = None
+) -> Dict[str, Any]:
     """Return structured loss metadata for summaries and run artifacts."""
     if criterion is not None and hasattr(criterion, "get_runtime_metadata"):
         return criterion.get_runtime_metadata()
@@ -364,10 +388,18 @@ def get_loss_runtime_metadata(loss_cfg: Dict[str, Any], criterion: Optional[nn.M
         "deferred_reweighting": {
             "enabled": enabled,
             "active": False,
-            "start_epoch": int(drw_cfg["start_epoch"]) if enabled and drw_cfg.get("start_epoch") is not None else None,
-            "activation_epoch": int(drw_cfg["start_epoch"]) if enabled and drw_cfg.get("start_epoch") is not None else None,
-            "power": float(drw_cfg["power"]) if enabled and drw_cfg.get("power") is not None else None,
-            "normalize": str(drw_cfg["normalize"]) if enabled and drw_cfg.get("normalize") is not None else None,
+            "start_epoch": int(drw_cfg["start_epoch"])
+            if enabled and drw_cfg.get("start_epoch") is not None
+            else None,
+            "activation_epoch": int(drw_cfg["start_epoch"])
+            if enabled and drw_cfg.get("start_epoch") is not None
+            else None,
+            "power": float(drw_cfg["power"])
+            if enabled and drw_cfg.get("power") is not None
+            else None,
+            "normalize": str(drw_cfg["normalize"])
+            if enabled and drw_cfg.get("normalize") is not None
+            else None,
         },
     }
 
@@ -403,14 +435,18 @@ def build_loss(
         )
     if name == "balanced_softmax":
         return BalancedSoftmaxLoss(
-            class_counts=_validate_class_counts(class_counts, num_classes=num_classes, loss_name=name),
+            class_counts=_validate_class_counts(
+                class_counts, num_classes=num_classes, loss_name=name
+            ),
             weight=class_weights,
             label_smoothing=label_smoothing,
             reduction="mean",
         )
     if name == "logit_adjusted_ce":
         return LogitAdjustedCrossEntropyLoss(
-            class_counts=_validate_class_counts(class_counts, num_classes=num_classes, loss_name=name),
+            class_counts=_validate_class_counts(
+                class_counts, num_classes=num_classes, loss_name=name
+            ),
             tau=float(loss_cfg.get("logit_adjusted_tau", 1.0)),
             weight=class_weights,
             label_smoothing=label_smoothing,
@@ -418,7 +454,9 @@ def build_loss(
         )
     if name == "ldam":
         return LDAMLoss(
-            class_counts=_validate_class_counts(class_counts, num_classes=num_classes, loss_name=name),
+            class_counts=_validate_class_counts(
+                class_counts, num_classes=num_classes, loss_name=name
+            ),
             max_margin=float(loss_cfg.get("ldam_max_margin", 0.5)),
             scale=float(loss_cfg.get("ldam_scale", 30.0)),
             weight=class_weights,

@@ -133,27 +133,31 @@ def build_stage_runtime(
 
     stage_name = normalize_stage_name(staged_cfg.get("stage_name"))
     parent_checkpoint_path = resolve_optional_path(staged_cfg.get("parent_checkpoint"))
-    parent_run_dir = resolve_optional_path(staged_cfg.get("parent_run_dir")) or infer_run_dir_from_checkpoint(
-        parent_checkpoint_path
-    )
+    parent_run_dir = resolve_optional_path(
+        staged_cfg.get("parent_run_dir")
+    ) or infer_run_dir_from_checkpoint(parent_checkpoint_path)
     parent_experiment_name = parent_runtime.get("experiment_name")
     parent_stage_name = parent_runtime.get("stage_name")
 
-    parent_lineage = parent_runtime.get("lineage", {}) if isinstance(parent_runtime.get("lineage"), dict) else {}
+    parent_lineage = (
+        parent_runtime.get("lineage", {}) if isinstance(parent_runtime.get("lineage"), dict) else {}
+    )
     explicit_lineage = staged_cfg.get("lineage", {})
     if not isinstance(explicit_lineage, dict):
         explicit_lineage = {}
 
-    base_checkpoint = resolve_optional_path(explicit_lineage.get("base_checkpoint")) or parent_lineage.get(
-        "base_checkpoint"
-    )
-    base_run_dir = resolve_optional_path(explicit_lineage.get("base_run_dir")) or parent_lineage.get("base_run_dir")
-    rebalance_checkpoint = resolve_optional_path(explicit_lineage.get("rebalance_checkpoint")) or parent_lineage.get(
-        "rebalance_checkpoint"
-    )
-    rebalance_run_dir = resolve_optional_path(explicit_lineage.get("rebalance_run_dir")) or parent_lineage.get(
-        "rebalance_run_dir"
-    )
+    base_checkpoint = resolve_optional_path(
+        explicit_lineage.get("base_checkpoint")
+    ) or parent_lineage.get("base_checkpoint")
+    base_run_dir = resolve_optional_path(
+        explicit_lineage.get("base_run_dir")
+    ) or parent_lineage.get("base_run_dir")
+    rebalance_checkpoint = resolve_optional_path(
+        explicit_lineage.get("rebalance_checkpoint")
+    ) or parent_lineage.get("rebalance_checkpoint")
+    rebalance_run_dir = resolve_optional_path(
+        explicit_lineage.get("rebalance_run_dir")
+    ) or parent_lineage.get("rebalance_run_dir")
 
     if parent_checkpoint_path and parent_stage_name in {None, "", "single_stage", "base"}:
         base_checkpoint = base_checkpoint or parent_checkpoint_path
@@ -169,7 +173,9 @@ def build_stage_runtime(
         "trainable_scope": normalize_trainable_scope(staged_cfg.get("trainable_scope")),
         "expected_parent_stages": normalize_stage_list(staged_cfg.get("expected_parent_stages")),
         "parent_checkpoint": parent_checkpoint_path,
-        "parent_use_ema": bool(staged_cfg.get("parent_use_ema", False)) if parent_checkpoint_path else False,
+        "parent_use_ema": bool(staged_cfg.get("parent_use_ema", False))
+        if parent_checkpoint_path
+        else False,
         "parent_run_dir": parent_run_dir,
         "parent_experiment_name": parent_experiment_name,
         "parent_stage_name": parent_stage_name,

@@ -51,7 +51,9 @@ def configure_trainable_scope(model: nn.Module, trainable_scope: str) -> Dict:
         for param in model.parameters():
             param.requires_grad = True
     elif normalized_scope == "classifier_only":
-        if not hasattr(model, "classifier") or not isinstance(getattr(model, "classifier"), nn.Module):
+        if not hasattr(model, "classifier") or not isinstance(
+            getattr(model, "classifier"), nn.Module
+        ):
             raise ValueError("classifier_only staged training requires model.classifier to exist.")
         for param in model.parameters():
             param.requires_grad = False

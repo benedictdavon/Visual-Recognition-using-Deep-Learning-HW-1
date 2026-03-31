@@ -26,4 +26,3 @@ def set_seed(seed: int = 42, deterministic: bool = False) -> None:
     else:
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
-

@@ -15,9 +15,14 @@ from src.utils.misc import ensure_dir, load_yaml  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for queued inference jobs."""
     parser = argparse.ArgumentParser(description="Run multiple inference jobs in sequence.")
-    parser.add_argument("--batch-config", type=str, required=True, help="YAML file describing queued jobs.")
-    parser.add_argument("--dry-run", action="store_true", help="Print commands without executing them.")
+    parser.add_argument(
+        "--batch-config", type=str, required=True, help="YAML file describing queued jobs."
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print commands without executing them."
+    )
     parser.add_argument(
         "--continue-on-error",
         action="store_true",
@@ -83,7 +88,9 @@ def _build_command(python_exe: str, default_config: str, job_cfg: dict) -> list[
     elif run_dir and checkpoint_name:
         cmd.extend(["--ckpt", _checkpoint_from_run_dir(run_dir, checkpoint_name)])
     else:
-        raise ValueError("Each inference job needs either 'ckpt' or both 'run_dir' and 'checkpoint_name'.")
+        raise ValueError(
+            "Each inference job needs either 'ckpt' or both 'run_dir' and 'checkpoint_name'."
+        )
 
     output_dir = job_cfg.get("output_dir", _default_output_dir(job_cfg.get("name", "job")))
     cmd.extend(["--output-dir", _resolve_path(output_dir)])
@@ -100,6 +107,7 @@ def _build_command(python_exe: str, default_config: str, job_cfg: dict) -> list[
 
 
 def main() -> int:
+    """Execute inference jobs from a batch YAML manifest."""
     args = parse_args()
     batch_cfg = load_yaml(args.batch_config)
     jobs = batch_cfg.get("jobs", [])
@@ -120,7 +128,7 @@ def main() -> int:
         if args.dry_run:
             continue
 
-        result = subprocess.run(cmd, cwd=ROOT)
+        result = subprocess.run(cmd, cwd=ROOT, check=False)
         if result.returncode != 0:
             failures.append((job_name, result.returncode))
             print(f"Job failed: {job_name} (exit code {result.returncode})")

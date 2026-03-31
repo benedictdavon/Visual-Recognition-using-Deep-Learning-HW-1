@@ -42,6 +42,7 @@ Thumbs.db
 # Local agent / workspace helpers
 .codex/
 agent/
+openspec/
 
 # Logs and outputs
 outputs/*
@@ -64,6 +65,7 @@ data/
 *.zip
 *.7z
 *.rar
+*.pdf
 
 # Local machine files
 .env

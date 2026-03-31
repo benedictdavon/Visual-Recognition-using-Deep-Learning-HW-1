@@ -18,6 +18,7 @@ from src.utils.misc import merge_yaml_configs, save_json  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for dataset inspection."""
     parser = argparse.ArgumentParser(description="Inspect homework dataset structure.")
     parser.add_argument("--data-dir", type=str, default=None, help="Dataset root directory.")
     parser.add_argument("--config", type=str, default=None, help="Optional YAML config path.")
@@ -31,13 +32,17 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Inspect the configured dataset and export a summary report."""
     args = parse_args()
     if args.config:
         cfg = merge_yaml_configs(args.config)
         if args.data_dir is not None:
             cfg["dataset"]["data_dir"] = args.data_dir
     elif args.data_dir is not None:
-        cfg = {"dataset": {"data_dir": args.data_dir, "dataset_type": "auto"}, "project": {"seed": 42}}
+        cfg = {
+            "dataset": {"data_dir": args.data_dir, "dataset_type": "auto"},
+            "project": {"seed": 42},
+        }
     else:
         raise ValueError("Provide either --data-dir or --config.")
 
@@ -65,7 +70,7 @@ def main() -> None:
         }
         print("\n=== Parsed Dataset Summary ===")
         print(pd.Series(report["prepared"]).to_string())
-    except Exception as exc:
+    except (FileNotFoundError, KeyError, OSError, ValueError, pd.errors.EmptyDataError) as exc:
         report["prepare_error"] = str(exc)
         print(f"\nFailed to parse dataset with current config: {exc}")
 
@@ -75,4 +80,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

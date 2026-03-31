@@ -1,0 +1,25 @@
+[MASTER]
+ignore=.codex,agent,data,outputs
+
+[FORMAT]
+max-line-length=100
+
+[MESSAGES CONTROL]
+disable=
+    C0114,
+    C0115,
+    C0116,
+    C0301,
+    C0413,
+    C0415,
+    R0402,
+    R0801,
+    R0902,
+    R0911,
+    R0912,
+    R0913,
+    R0914,
+    R0915,
+    R0917,
+    W0201,
+    W0212

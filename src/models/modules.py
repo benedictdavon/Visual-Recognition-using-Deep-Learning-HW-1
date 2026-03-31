@@ -10,10 +10,12 @@ class DropPath(nn.Module):
     """Stochastic depth per sample."""
 
     def __init__(self, drop_prob: float = 0.0):
+        """Store the probability of dropping each residual path."""
         super().__init__()
         self.drop_prob = float(drop_prob)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Randomly drop entire residual paths during training."""
         if self.drop_prob <= 0.0 or not self.training:
             return x
         keep_prob = 1.0 - self.drop_prob
@@ -27,6 +29,7 @@ class SEBlock(nn.Module):
     """Squeeze-and-Excitation block."""
 
     def __init__(self, channels: int, reduction: int = 16):
+        """Build the channel squeeze and excitation subnetwork."""
         super().__init__()
         hidden = max(channels // reduction, 4)
         self.pool = nn.AdaptiveAvgPool2d(1)
@@ -38,6 +41,7 @@ class SEBlock(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Rescale channels using learned global-context gates."""
         scale = self.fc(self.pool(x))
         return x * scale
 
@@ -46,6 +50,7 @@ class ChannelAttention(nn.Module):
     """Channel attention for CBAM."""
 
     def __init__(self, channels: int, reduction: int = 16):
+        """Create the CBAM channel-attention MLP and pooling heads."""
         super().__init__()
         hidden = max(channels // reduction, 4)
         self.mlp = nn.Sequential(
@@ -58,6 +63,7 @@ class ChannelAttention(nn.Module):
         self.max_pool = nn.AdaptiveMaxPool2d(1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply pooled channel attention to the input tensor."""
         attn = self.mlp(self.avg_pool(x)) + self.mlp(self.max_pool(x))
         return x * self.sigmoid(attn)
 
@@ -66,12 +72,14 @@ class SpatialAttention(nn.Module):
     """Spatial attention for CBAM."""
 
     def __init__(self, kernel_size: int = 7):
+        """Build the spatial attention convolution."""
         super().__init__()
         padding = kernel_size // 2
         self.conv = nn.Conv2d(2, 1, kernel_size=kernel_size, padding=padding, bias=False)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply spatial masking derived from channelwise statistics."""
         avg_map = torch.mean(x, dim=1, keepdim=True)
         max_map = torch.max(x, dim=1, keepdim=True).values
         cat = torch.cat([avg_map, max_map], dim=1)
@@ -83,11 +91,13 @@ class CBAMBlock(nn.Module):
     """Convolutional Block Attention Module."""
 
     def __init__(self, channels: int, reduction: int = 16, spatial_kernel: int = 7):
+        """Compose channel and spatial attention into one block."""
         super().__init__()
         self.channel_attn = ChannelAttention(channels=channels, reduction=reduction)
         self.spatial_attn = SpatialAttention(kernel_size=spatial_kernel)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply channel attention followed by spatial attention."""
         x = self.channel_attn(x)
         x = self.spatial_attn(x)
         return x

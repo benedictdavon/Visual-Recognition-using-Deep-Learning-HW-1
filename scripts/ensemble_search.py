@@ -30,6 +30,8 @@ from src.utils.misc import ensure_dir, load_yaml, save_json  # noqa: E402
 
 @dataclass
 class CandidateArtifact:
+    """Validation and test probabilities for one ensemble candidate."""
+
     name: str
     family: str
     branch: str | None
@@ -42,6 +44,16 @@ class CandidateArtifact:
     test_probs: np.ndarray | None
 
 
+@dataclass
+class TrialResult:
+    """One greedy-search trial over the current ensemble pool."""
+
+    candidate: CandidateArtifact
+    candidates: list[CandidateArtifact]
+    weights: list[float]
+    metrics: dict[str, float]
+
+
 _METRIC_ALIASES = {
     "val_acc": ["val_acc", "acc1"],
     "val_macro_recall": ["val_macro_recall", "macro_recall", "macro_per_class_acc"],
@@ -51,11 +63,18 @@ _METRIC_ALIASES = {
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for greedy ensemble search."""
     parser = argparse.ArgumentParser(description="Greedy NLL-aware ensemble search.")
-    parser.add_argument("--manifest", type=str, required=True, help="YAML manifest describing candidates.")
+    parser.add_argument(
+        "--manifest", type=str, required=True, help="YAML manifest describing candidates."
+    )
     parser.add_argument("--output-dir", type=str, default="outputs/ensemble_search")
-    parser.add_argument("--anchor", type=str, required=True, help="Anchor candidate name to lock into the pool.")
-    parser.add_argument("--diversity-summary", type=str, default=None, help="Optional diversity_summary.csv filter.")
+    parser.add_argument(
+        "--anchor", type=str, required=True, help="Anchor candidate name to lock into the pool."
+    )
+    parser.add_argument(
+        "--diversity-summary", type=str, default=None, help="Optional diversity_summary.csv filter."
+    )
     parser.add_argument("--max-pool-size", type=int, default=4)
     parser.add_argument("--weight-grid", nargs="+", type=float, default=[0.5, 1.0, 1.5, 2.0])
     parser.add_argument("--min-nll-gain", type=float, default=1e-4)
@@ -114,7 +133,9 @@ def _aligned_order(anchor_ids: np.ndarray, candidate_ids: np.ndarray) -> np.ndar
     try:
         indices = np.array([lookup[sample_id] for sample_id in anchor_ids.tolist()], dtype=np.int64)
     except KeyError as exc:
-        raise ValueError(f"Candidate artifact is missing sample_id '{exc.args[0]}' required by the anchor.") from exc
+        raise ValueError(
+            f"Candidate artifact is missing sample_id '{exc.args[0]}' required by the anchor."
+        ) from exc
     if len(lookup) != len(anchor_ids):
         raise ValueError("All candidate artifacts must cover the same sample set.")
     return indices
@@ -139,7 +160,9 @@ def _load_idx_to_label(path: Path) -> dict[int, str]:
     return {int(k): str(v) for k, v in data.items()}
 
 
-def _resolve_idx_to_label(manifest_candidates: list[dict], override_path: str | None) -> dict[int, str] | None:
+def _resolve_idx_to_label(
+    manifest_candidates: list[dict], override_path: str | None
+) -> dict[int, str] | None:
     if override_path:
         return _load_idx_to_label(_resolve_path(override_path))
     for entry in manifest_candidates:
@@ -155,7 +178,9 @@ def _resolve_idx_to_label(manifest_candidates: list[dict], override_path: str | 
 def _compute_metrics(probs: np.ndarray, targets: np.ndarray) -> dict[str, float]:
     preds = np.argmax(probs, axis=1)
     acc = float(np.mean(preds == targets) * 100.0)
-    conf_mat = compute_confusion_matrix(targets.tolist(), preds.tolist(), num_classes=probs.shape[1])
+    conf_mat = compute_confusion_matrix(
+        targets.tolist(), preds.tolist(), num_classes=probs.shape[1]
+    )
     macro_recall = macro_recall_from_confusion_matrix(conf_mat, as_percentage=True)
     nll = float(-np.log(np.clip(probs[np.arange(len(targets)), targets], 1e-12, 1.0)).mean())
     ece = expected_calibration_error(probs, targets)
@@ -183,19 +208,27 @@ def _is_better(candidate_metrics: dict[str, float], best_metrics: dict[str, floa
     return candidate_metrics["val_ece"] < best_metrics["val_ece"] - 1e-12
 
 
-def _fuse_probs(candidates: list[CandidateArtifact], weights: tuple[float, ...], use_test: bool) -> tuple[np.ndarray, np.ndarray]:
+def _fuse_probs(
+    candidates: list[CandidateArtifact], weights: tuple[float, ...], use_test: bool
+) -> tuple[np.ndarray, np.ndarray]:
     sample_ids = candidates[0].test_sample_ids if use_test else candidates[0].val_sample_ids
-    probs = np.zeros_like(candidates[0].test_probs if use_test else candidates[0].val_probs, dtype=np.float64)
+    probs = np.zeros_like(
+        candidates[0].test_probs if use_test else candidates[0].val_probs, dtype=np.float64
+    )
     for candidate, weight in zip(candidates, weights):
         source_probs = candidate.test_probs if use_test else candidate.val_probs
         if source_probs is None:
-            raise ValueError(f"Candidate '{candidate.name}' is missing {'test' if use_test else 'val'} probabilities.")
+            raise ValueError(
+                f"Candidate '{candidate.name}' is missing {'test' if use_test else 'val'} probabilities."
+            )
         probs += source_probs * float(weight)
     probs /= float(sum(weights))
     return sample_ids, probs
 
 
-def _search_best_weights(candidates: list[CandidateArtifact], weight_grid: list[float]) -> tuple[list[float], dict[str, float]]:
+def _search_best_weights(
+    candidates: list[CandidateArtifact], weight_grid: list[float]
+) -> tuple[list[float], dict[str, float]]:
     best_weights = [1.0] * len(candidates)
     _, baseline_probs = _fuse_probs(candidates, tuple(best_weights), use_test=False)
     best_metrics = _compute_metrics(baseline_probs, candidates[0].val_targets)
@@ -210,12 +243,16 @@ def _search_best_weights(candidates: list[CandidateArtifact], weight_grid: list[
     return best_weights, best_metrics
 
 
-def _load_candidates(manifest: dict, anchor_name: str, diversity_summary: Path | None) -> list[CandidateArtifact]:
+def _load_candidates(
+    manifest: dict, anchor_name: str, diversity_summary: Path | None
+) -> list[CandidateArtifact]:
     selected_names = None
     if diversity_summary is not None:
         df = pd.read_csv(diversity_summary)
         if "name" not in df.columns or "selected_for_ensemble" not in df.columns:
-            raise ValueError("diversity_summary.csv must contain 'name' and 'selected_for_ensemble' columns.")
+            raise ValueError(
+                "diversity_summary.csv must contain 'name' and 'selected_for_ensemble' columns."
+            )
         selected_names = set(df.loc[df["selected_for_ensemble"], "name"].astype(str).tolist())
         selected_names.add(anchor_name)
 
@@ -245,8 +282,12 @@ def _load_candidates(manifest: dict, anchor_name: str, diversity_summary: Path |
             test_ids, test_probs = None, None
 
         family = str(entry.get("family", name))
-        branch = str(entry["branch"]).strip().lower() if entry.get("branch") not in {None, ""} else None
-        selection_group = str(entry.get("selection_group") or (f"{family}:{branch}" if branch else family))
+        branch = (
+            str(entry["branch"]).strip().lower() if entry.get("branch") not in {None, ""} else None
+        )
+        selection_group = str(
+            entry.get("selection_group") or (f"{family}:{branch}" if branch else family)
+        )
         candidate = CandidateArtifact(
             name=name,
             family=family,
@@ -271,7 +312,9 @@ def _load_candidates(manifest: dict, anchor_name: str, diversity_summary: Path |
     for candidate in loaded:
         val_order = _aligned_order(anchor_ids, candidate.val_sample_ids)
         val_targets = candidate.val_targets[val_order]
-        if not np.array_equal(val_targets, loaded[[c.name for c in loaded].index(anchor_name)].val_targets):
+        if not np.array_equal(
+            val_targets, loaded[[c.name for c in loaded].index(anchor_name)].val_targets
+        ):
             raise ValueError(f"Val targets mismatch for candidate '{candidate.name}'.")
 
         test_ids = candidate.test_sample_ids
@@ -299,6 +342,7 @@ def _load_candidates(manifest: dict, anchor_name: str, diversity_summary: Path |
 
 
 def main() -> int:
+    """Search a small weighted ensemble pool around a fixed anchor model."""
     args = parse_args()
     if args.max_pool_size <= 0:
         raise ValueError("--max-pool-size must be positive.")
@@ -307,7 +351,9 @@ def main() -> int:
 
     manifest = load_yaml(args.manifest)
     diversity_summary = _resolve_path(args.diversity_summary) if args.diversity_summary else None
-    candidates = _load_candidates(manifest, anchor_name=args.anchor, diversity_summary=diversity_summary)
+    candidates = _load_candidates(
+        manifest, anchor_name=args.anchor, diversity_summary=diversity_summary
+    )
     candidate_lookup = {candidate.name: candidate for candidate in candidates}
     if args.anchor not in candidate_lookup:
         raise ValueError(f"Anchor '{args.anchor}' is missing after candidate loading/filtering.")
@@ -328,30 +374,30 @@ def main() -> int:
 
     remaining = [candidate for candidate in candidates if candidate.name != args.anchor]
     while remaining and len(selected) < args.max_pool_size:
-        best_trial = None
+        best_trial: TrialResult | None = None
         for candidate in remaining:
             trial_candidates = selected + [candidate]
             trial_weights, trial_metrics = _search_best_weights(trial_candidates, args.weight_grid)
-            trial_record = {
-                "candidate": candidate,
-                "candidates": trial_candidates,
-                "weights": trial_weights,
-                "metrics": trial_metrics,
-            }
-            if best_trial is None or _is_better(trial_metrics, best_trial["metrics"]):
+            trial_record = TrialResult(
+                candidate=candidate,
+                candidates=trial_candidates,
+                weights=trial_weights,
+                metrics=trial_metrics,
+            )
+            if best_trial is None or _is_better(trial_metrics, best_trial.metrics):
                 best_trial = trial_record
 
         if best_trial is None:
             break
 
-        nll_gain = current_metrics["val_nll"] - best_trial["metrics"]["val_nll"]
-        acc_drop = current_metrics["val_acc"] - best_trial["metrics"]["val_acc"]
+        nll_gain = current_metrics["val_nll"] - best_trial.metrics["val_nll"]
+        acc_drop = current_metrics["val_acc"] - best_trial.metrics["val_acc"]
         if nll_gain < args.min_nll_gain:
             search_trace.append(
                 {
                     "step": len(search_trace),
                     "action": "stop_no_nll_gain",
-                    "candidate": best_trial["candidate"].name,
+                    "candidate": best_trial.candidate.name,
                     "selected_models": [candidate.name for candidate in selected],
                     "weights": selected_weights,
                     **current_metrics,
@@ -363,7 +409,7 @@ def main() -> int:
                 {
                     "step": len(search_trace),
                     "action": "stop_acc_drop_guard",
-                    "candidate": best_trial["candidate"].name,
+                    "candidate": best_trial.candidate.name,
                     "selected_models": [candidate.name for candidate in selected],
                     "weights": selected_weights,
                     **current_metrics,
@@ -371,15 +417,17 @@ def main() -> int:
             )
             break
 
-        selected = best_trial["candidates"]
-        selected_weights = best_trial["weights"]
-        current_metrics = best_trial["metrics"]
-        remaining = [candidate for candidate in remaining if candidate.name != best_trial["candidate"].name]
+        selected = best_trial.candidates
+        selected_weights = best_trial.weights
+        current_metrics = best_trial.metrics
+        remaining = [
+            candidate for candidate in remaining if candidate.name != best_trial.candidate.name
+        ]
         search_trace.append(
             {
                 "step": len(search_trace),
                 "action": "add_candidate",
-                "candidate": best_trial["candidate"].name,
+                "candidate": best_trial.candidate.name,
                 "selected_models": [candidate.name for candidate in selected],
                 "weights": selected_weights,
                 **current_metrics,
@@ -421,7 +469,9 @@ def main() -> int:
             idx_to_label=idx_to_label,
             use_label_name=args.use_label_name,
         )
-        prediction_path = save_prediction_csv(submission_df, output_dir=output_dir, filename="prediction.csv")
+        prediction_path = save_prediction_csv(
+            submission_df, output_dir=output_dir, filename="prediction.csv"
+        )
         np.savez_compressed(
             output_dir / "ensemble_test_probs_with_ids.npz",
             sample_ids=test_ids,

@@ -78,7 +78,9 @@ def evaluate(
 
     targets_arr = np.array(all_targets, dtype=np.int64)
     preds_arr = np.array(all_preds, dtype=np.int64)
-    probs_arr = np.concatenate(all_probs, axis=0) if all_probs else np.empty((0, 0), dtype=np.float32)
+    probs_arr = (
+        np.concatenate(all_probs, axis=0) if all_probs else np.empty((0, 0), dtype=np.float32)
+    )
     metrics = {
         "loss": float(loss_meter.avg),
         "nll": float(nll_meter.avg),

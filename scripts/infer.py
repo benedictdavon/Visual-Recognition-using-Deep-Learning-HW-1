@@ -31,6 +31,7 @@ from src.utils.seed import set_seed  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for inference and submission export."""
     parser = argparse.ArgumentParser(description="Inference and prediction.csv generation.")
     parser.add_argument("--config", type=str, default="configs/config.yaml")
     parser.add_argument("--model-config", type=str, default=None)
@@ -55,8 +56,13 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run test-time inference and save prediction artifacts."""
     args = parse_args()
-    extra_cfgs = [p for p in [args.model_config, args.train_config, args.aug_config, args.inference_config] if p]
+    extra_cfgs = [
+        p
+        for p in [args.model_config, args.train_config, args.aug_config, args.inference_config]
+        if p
+    ]
     config = merge_yaml_configs(args.config, extra_cfgs)
     set_seed(
         seed=int(config["project"].get("seed", 42)),
@@ -79,7 +85,8 @@ def main() -> None:
         shuffle=False,
         num_workers=int(dl_cfg["num_workers"]),
         pin_memory=bool(dl_cfg.get("pin_memory", True)) and torch.cuda.is_available(),
-        persistent_workers=bool(dl_cfg.get("persistent_workers", True)) and int(dl_cfg["num_workers"]) > 0,
+        persistent_workers=bool(dl_cfg.get("persistent_workers", True))
+        and int(dl_cfg["num_workers"]) > 0,
     )
 
     model, _ = build_model(config["model"], num_classes=len(bundle.label_to_idx))
@@ -88,15 +95,10 @@ def main() -> None:
         logger.info("Model build info: %s", model_meta)
     ckpt = load_checkpoint(args.ckpt, map_location="cpu")
     ckpt_name = Path(args.ckpt).stem.lower()
-    auto_use_ema = (
-        (not args.use_ema)
-        and ("ema_state_dict" in ckpt)
-        and (ckpt_name == "best_ema")
-    )
+    auto_use_ema = (not args.use_ema) and ("ema_state_dict" in ckpt) and (ckpt_name == "best_ema")
     if auto_use_ema:
         logger.warning(
-            "Checkpoint name is best_ema.ckpt but --use-ema was not set. "
-            "Auto-loading EMA weights."
+            "Checkpoint name is best_ema.ckpt but --use-ema was not set. Auto-loading EMA weights."
         )
 
     use_ema = bool(args.use_ema or auto_use_ema)
@@ -167,7 +169,9 @@ def main() -> None:
         idx_to_label=bundle.idx_to_label,
         use_label_name=use_label_name,
     )
-    pred_csv_path = save_prediction_csv(submission_df, output_dir=output_dir, filename="prediction.csv")
+    pred_csv_path = save_prediction_csv(
+        submission_df, output_dir=output_dir, filename="prediction.csv"
+    )
 
     with (output_dir / "inference_summary.json").open("w", encoding="utf-8") as f:
         json.dump(

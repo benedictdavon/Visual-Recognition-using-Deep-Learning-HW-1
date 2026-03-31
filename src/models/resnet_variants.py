@@ -13,7 +13,9 @@ from src.models.modules import CBAMBlock, DropPath, SEBlock
 
 try:
     import timm
-except ImportError:  # pragma: no cover - dependency is optional until a timm-backed model is requested
+except (
+    ImportError
+):  # pragma: no cover - dependency is optional until a timm-backed model is requested
     timm = None
 
 
@@ -123,6 +125,7 @@ class BottleneckWithSEAndDropPath(nn.Module):
         drop_prob: float = 0.0,
         enable_se: bool = True,
     ) -> None:
+        """Wrap an existing bottleneck block with optional SE and drop path."""
         super().__init__()
         self.block = block
         channels = block.conv3.out_channels
@@ -130,6 +133,7 @@ class BottleneckWithSEAndDropPath(nn.Module):
         self.drop_path = DropPath(drop_prob=drop_prob) if drop_prob > 0 else nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Run the wrapped bottleneck while injecting SE and drop path."""
         identity = x
 
         out = self.block.conv1(x)
@@ -195,6 +199,7 @@ class ResNetClassifier(nn.Module):
         attention: str = "none",
         dropout: float = 0.0,
     ) -> None:
+        """Attach attention blocks and a classifier head to a ResNet backbone."""
         super().__init__()
         self.backbone = backbone
         in_features = backbone.fc.in_features
@@ -207,6 +212,7 @@ class ResNetClassifier(nn.Module):
         self.attn4 = _build_attention(attention, 2048)
 
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
+        """Extract pooled backbone features before the classifier layer."""
         x = self.backbone.conv1(x)
         x = self.backbone.bn1(x)
         x = self.backbone.relu(x)
@@ -226,6 +232,7 @@ class ResNetClassifier(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Run the backbone and classify the pooled feature vector."""
         x = self.forward_features(x)
         x = self.dropout(x)
         return self.classifier(x)
@@ -235,6 +242,7 @@ class TimmFeatureClassifier(nn.Module):
     """Generic classifier wrapper for timm-backed residual-family feature extractors."""
 
     def __init__(self, backbone: nn.Module, num_classes: int, dropout: float = 0.0) -> None:
+        """Attach a linear classifier head to a timm feature extractor."""
         super().__init__()
         self.backbone = backbone
         in_features = getattr(backbone, "num_features", None)
@@ -244,6 +252,7 @@ class TimmFeatureClassifier(nn.Module):
         self.classifier = nn.Linear(in_features, num_classes)
 
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
+        """Extract flat feature vectors from a timm backbone."""
         x = self.backbone(x)
         if isinstance(x, (tuple, list)):
             if not x:
@@ -256,6 +265,7 @@ class TimmFeatureClassifier(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Run feature extraction and classify the result."""
         x = self.forward_features(x)
         x = self.dropout(x)
         return self.classifier(x)
@@ -289,7 +299,11 @@ def _slice_grouped_axis0(weight: torch.Tensor, target_channels: int, groups: int
     source_channels = weight.shape[0]
     if source_channels == target_channels:
         return weight.clone()
-    if source_channels < target_channels or source_channels % groups != 0 or target_channels % groups != 0:
+    if (
+        source_channels < target_channels
+        or source_channels % groups != 0
+        or target_channels % groups != 0
+    ):
         raise ValueError(
             f"Cannot slice axis0 grouped tensor from {tuple(weight.shape)} to target channels {target_channels}."
         )
@@ -308,7 +322,11 @@ def _slice_grouped_axis1(weight: torch.Tensor, target_channels: int, groups: int
     source_channels = weight.shape[1]
     if source_channels == target_channels:
         return weight.clone()
-    if source_channels < target_channels or source_channels % groups != 0 or target_channels % groups != 0:
+    if (
+        source_channels < target_channels
+        or source_channels % groups != 0
+        or target_channels % groups != 0
+    ):
         raise ValueError(
             f"Cannot slice axis1 grouped tensor from {tuple(weight.shape)} to target channels {target_channels}."
         )
@@ -322,7 +340,9 @@ def _slice_grouped_axis1(weight: torch.Tensor, target_channels: int, groups: int
     return torch.cat(parts, dim=1)
 
 
-def _copy_bn_stats(target_bn: nn.BatchNorm2d, source_bn: nn.BatchNorm2d, groups: int | None = None) -> None:
+def _copy_bn_stats(
+    target_bn: nn.BatchNorm2d, source_bn: nn.BatchNorm2d, groups: int | None = None
+) -> None:
     """Copy batchnorm statistics, using grouped slicing when width shrinks."""
     with torch.no_grad():
         if groups is None:
@@ -331,10 +351,16 @@ def _copy_bn_stats(target_bn: nn.BatchNorm2d, source_bn: nn.BatchNorm2d, groups:
             target_bn.running_mean.copy_(source_bn.running_mean[: target_bn.running_mean.shape[0]])
             target_bn.running_var.copy_(source_bn.running_var[: target_bn.running_var.shape[0]])
         else:
-            target_bn.weight.copy_(_slice_grouped_axis0(source_bn.weight, target_bn.weight.shape[0], groups))
-            target_bn.bias.copy_(_slice_grouped_axis0(source_bn.bias, target_bn.bias.shape[0], groups))
+            target_bn.weight.copy_(
+                _slice_grouped_axis0(source_bn.weight, target_bn.weight.shape[0], groups)
+            )
+            target_bn.bias.copy_(
+                _slice_grouped_axis0(source_bn.bias, target_bn.bias.shape[0], groups)
+            )
             target_bn.running_mean.copy_(
-                _slice_grouped_axis0(source_bn.running_mean, target_bn.running_mean.shape[0], groups)
+                _slice_grouped_axis0(
+                    source_bn.running_mean, target_bn.running_mean.shape[0], groups
+                )
             )
             target_bn.running_var.copy_(
                 _slice_grouped_axis0(source_bn.running_var, target_bn.running_var.shape[0], groups)
@@ -358,7 +384,9 @@ def _copy_resnext50_32x_width_reduced_weights(
                 groups = int(target_block.conv2.groups)
 
                 target_block.conv1.weight.copy_(
-                    _slice_grouped_axis0(source_block.conv1.weight, target_block.conv1.out_channels, groups)
+                    _slice_grouped_axis0(
+                        source_block.conv1.weight, target_block.conv1.out_channels, groups
+                    )
                 )
                 _copy_bn_stats(target_block.bn1, source_block.bn1, groups=groups)
 
@@ -407,7 +435,9 @@ def _warm_start_resnext50_32x3d_from_32x4d(target_model: tv_resnet.ResNet) -> Di
     }
 
 
-def _build_timm_resnet_family_backbone(model_name: str, pretrained: bool) -> tuple[nn.Module, Dict[str, Any]]:
+def _build_timm_resnet_family_backbone(
+    model_name: str, pretrained: bool
+) -> tuple[nn.Module, Dict[str, Any]]:
     """Construct a timm residual-family backbone with pooled features only."""
     if timm is None:
         raise ImportError(
@@ -422,7 +452,9 @@ def _build_timm_resnet_family_backbone(model_name: str, pretrained: bool) -> tup
             num_classes=0,
             global_pool="avg",
         )
-    except Exception as exc:  # pragma: no cover - model registry and weight download are environment-dependent
+    except (
+        Exception
+    ) as exc:  # pragma: no cover - model registry and weight download are environment-dependent
         raise RuntimeError(
             f"Failed to build timm-backed model '{model_name}'. "
             "Ensure the model name is valid and pretrained weights are available in the active environment."
@@ -512,13 +544,21 @@ def build_resnet_variant(
                 f"model.custom_pretrained_init is not supported for timm-backed model '{base_model_name}'."
             )
         if resnetd:
-            raise ValueError(f"model.resnetd is not supported for timm-backed model '{base_model_name}'.")
+            raise ValueError(
+                f"model.resnetd is not supported for timm-backed model '{base_model_name}'."
+            )
         if str(attention).lower() != "none":
-            raise ValueError(f"model.attention is not supported for timm-backed model '{base_model_name}'.")
+            raise ValueError(
+                f"model.attention is not supported for timm-backed model '{base_model_name}'."
+            )
         if str(se_mode).lower() not in {"none", ""}:
-            raise ValueError(f"model.se_mode is not supported for timm-backed model '{base_model_name}'.")
+            raise ValueError(
+                f"model.se_mode is not supported for timm-backed model '{base_model_name}'."
+            )
         if float(drop_path_rate) > 0.0:
-            raise ValueError(f"model.drop_path_rate is not supported for timm-backed model '{base_model_name}'.")
+            raise ValueError(
+                f"model.drop_path_rate is not supported for timm-backed model '{base_model_name}'."
+            )
         base_model, initialization = _build_timm_resnet_family_backbone(
             model_name=base_model_name,
             pretrained=pretrained,

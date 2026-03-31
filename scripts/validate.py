@@ -33,6 +33,7 @@ from src.utils.seed import set_seed  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for checkpoint validation."""
     parser = argparse.ArgumentParser(description="Validate a trained checkpoint.")
     parser.add_argument("--config", type=str, default="configs/config.yaml")
     parser.add_argument("--model-config", type=str, default=None)
@@ -42,7 +43,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ckpt", type=str, required=True, help="Checkpoint path.")
     parser.add_argument("--output-dir", type=str, default="outputs/validate")
     parser.add_argument("--use-ema", action="store_true", help="Evaluate EMA weights if present.")
-    parser.add_argument("--topk", type=int, default=5, help="Top-k predictions to export in analysis CSV.")
+    parser.add_argument(
+        "--topk", type=int, default=5, help="Top-k predictions to export in analysis CSV."
+    )
     parser.add_argument(
         "--no-analysis",
         action="store_true",
@@ -55,9 +58,23 @@ def _maybe_numeric_label(label_name: str):
     return int(label_name) if str(label_name).isdigit() else str(label_name)
 
 
+def _to_serializable_value(value):
+    """Convert numpy-backed metrics into JSON-serializable Python values."""
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
 def main() -> None:
+    """Evaluate one checkpoint and export detailed validation artifacts."""
     args = parse_args()
-    extra_cfgs = [p for p in [args.model_config, args.train_config, args.aug_config, args.inference_config] if p]
+    extra_cfgs = [
+        p
+        for p in [args.model_config, args.train_config, args.aug_config, args.inference_config]
+        if p
+    ]
     config = merge_yaml_configs(args.config, extra_cfgs)
     set_seed(
         seed=int(config["project"].get("seed", 42)),
@@ -81,7 +98,8 @@ def main() -> None:
         shuffle=False,
         num_workers=int(dl_cfg["num_workers"]),
         pin_memory=bool(dl_cfg.get("pin_memory", True)) and torch.cuda.is_available(),
-        persistent_workers=bool(dl_cfg.get("persistent_workers", True)) and int(dl_cfg["num_workers"]) > 0,
+        persistent_workers=bool(dl_cfg.get("persistent_workers", True))
+        and int(dl_cfg["num_workers"]) > 0,
     )
 
     model, model_meta = build_model(config["model"], num_classes=len(bundle.label_to_idx))
@@ -90,15 +108,10 @@ def main() -> None:
         logger.info("Model build info: %s", build_info)
     ckpt = load_checkpoint(args.ckpt, map_location="cpu")
     ckpt_name = Path(args.ckpt).stem.lower()
-    auto_use_ema = (
-        (not args.use_ema)
-        and ("ema_state_dict" in ckpt)
-        and (ckpt_name == "best_ema")
-    )
+    auto_use_ema = (not args.use_ema) and ("ema_state_dict" in ckpt) and (ckpt_name == "best_ema")
     if auto_use_ema:
         logger.warning(
-            "Checkpoint name is best_ema.ckpt but --use-ema was not set. "
-            "Auto-loading EMA weights."
+            "Checkpoint name is best_ema.ckpt but --use-ema was not set. Auto-loading EMA weights."
         )
 
     use_ema = bool(args.use_ema or auto_use_ema)
@@ -121,7 +134,9 @@ def main() -> None:
 
     class_weights = config["loss"].get("class_weights")
     class_weights_tensor = (
-        torch.tensor(class_weights, dtype=torch.float, device=device) if class_weights is not None else None
+        torch.tensor(class_weights, dtype=torch.float, device=device)
+        if class_weights is not None
+        else None
     )
     class_counts = compute_class_counts(bundle.train_df, num_classes=len(bundle.label_to_idx))
     class_counts_tensor = torch.tensor(class_counts, dtype=torch.float, device=device)
@@ -148,8 +163,9 @@ def main() -> None:
     )
 
     serializable = {
-        k: (v.tolist() if isinstance(v, np.ndarray) else v)
-        for k, v in metrics.items() if k not in {"targets", "preds", "probs"}
+        k: _to_serializable_value(v)
+        for k, v in metrics.items()
+        if k not in {"targets", "preds", "probs"}
     }
     serializable["val_acc"] = float(metrics["acc1"])
     serializable["val_macro_recall"] = float(metrics.get("macro_recall", 0.0))
@@ -206,9 +222,7 @@ def main() -> None:
         true_label_ids = [
             _maybe_numeric_label(bundle.idx_to_label[int(i)]) for i in targets.tolist()
         ]
-        pred_label_ids = [
-            _maybe_numeric_label(bundle.idx_to_label[int(i)]) for i in preds.tolist()
-        ]
+        pred_label_ids = [_maybe_numeric_label(bundle.idx_to_label[int(i)]) for i in preds.tolist()]
 
         pred_df = pd.DataFrame(
             {
@@ -255,8 +269,14 @@ def main() -> None:
         np.save(output_dir / "confusion_matrix.npy", metrics["confusion_matrix"])
         conf_df = pd.DataFrame(
             metrics["confusion_matrix"],
-            index=[_maybe_numeric_label(bundle.idx_to_label[i]) for i in range(len(bundle.idx_to_label))],
-            columns=[_maybe_numeric_label(bundle.idx_to_label[i]) for i in range(len(bundle.idx_to_label))],
+            index=[
+                _maybe_numeric_label(bundle.idx_to_label[i])
+                for i in range(len(bundle.idx_to_label))
+            ],
+            columns=[
+                _maybe_numeric_label(bundle.idx_to_label[i])
+                for i in range(len(bundle.idx_to_label))
+            ],
         )
         conf_df.to_csv(output_dir / "confusion_matrix.csv")
 

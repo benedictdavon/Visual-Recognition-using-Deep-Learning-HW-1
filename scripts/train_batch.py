@@ -15,9 +15,14 @@ from src.utils.misc import load_yaml  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for queued training jobs."""
     parser = argparse.ArgumentParser(description="Run multiple training jobs in sequence.")
-    parser.add_argument("--batch-config", type=str, required=True, help="YAML file describing queued jobs.")
-    parser.add_argument("--dry-run", action="store_true", help="Print commands without executing them.")
+    parser.add_argument(
+        "--batch-config", type=str, required=True, help="YAML file describing queued jobs."
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print commands without executing them."
+    )
     parser.add_argument(
         "--continue-on-error",
         action="store_true",
@@ -60,7 +65,9 @@ def _build_train_command(
     init_from_run_dir = job_cfg.get("init_from_run_dir")
     init_checkpoint_name = job_cfg.get("init_checkpoint_name")
     if init_ckpt and (init_from_run_dir or init_checkpoint_name):
-        raise ValueError("Use either 'init_ckpt' or 'init_from_run_dir' + 'init_checkpoint_name', not both.")
+        raise ValueError(
+            "Use either 'init_ckpt' or 'init_from_run_dir' + 'init_checkpoint_name', not both."
+        )
     if init_from_run_dir and not init_checkpoint_name:
         raise ValueError("'init_checkpoint_name' is required when using 'init_from_run_dir'.")
     if init_checkpoint_name and not init_from_run_dir and not init_ckpt:
@@ -87,6 +94,7 @@ def _build_train_command(
 
 
 def main() -> int:
+    """Execute training jobs from a batch YAML manifest."""
     args = parse_args()
     batch_cfg = load_yaml(args.batch_config)
     jobs = batch_cfg.get("jobs", [])
@@ -107,7 +115,7 @@ def main() -> int:
         if args.dry_run:
             continue
 
-        result = subprocess.run(cmd, cwd=ROOT)
+        result = subprocess.run(cmd, cwd=ROOT, check=False)
         if result.returncode != 0:
             failures.append((job_name, result.returncode))
             print(f"Job failed: {job_name} (exit code {result.returncode})")

@@ -45,11 +45,7 @@ def deep_update(base: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]
     """Recursively merge updates into base and return a new dictionary."""
     merged = deepcopy(base)
     for key, value in updates.items():
-        if (
-            key in merged
-            and isinstance(merged[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
             merged[key] = deep_update(merged[key], value)
         else:
             merged[key] = value
@@ -82,4 +78,3 @@ def create_run_dir(output_root: Path | str, experiment_name: str) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = Path(output_root) / f"{timestamp}_{experiment_name}"
     return ensure_dir(run_dir)
-

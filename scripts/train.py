@@ -40,6 +40,7 @@ from src.utils.staged_training import (  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for training."""
     parser = argparse.ArgumentParser(description="Train ResNet classifier for HW1.")
     parser.add_argument("--config", type=str, default="configs/config.yaml")
     parser.add_argument("--model-config", type=str, default=None)
@@ -47,8 +48,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aug-config", type=str, default=None)
     parser.add_argument("--inference-config", type=str, default=None)
     parser.add_argument("--output-dir", type=str, default=None)
-    parser.add_argument("--resume", type=str, default=None, help="Reserved for future resume support.")
-    parser.add_argument("--init-ckpt", type=str, default=None, help="Initialize model from checkpoint.")
+    parser.add_argument(
+        "--resume", type=str, default=None, help="Reserved for future resume support."
+    )
+    parser.add_argument(
+        "--init-ckpt", type=str, default=None, help="Initialize model from checkpoint."
+    )
     parser.add_argument(
         "--init-use-ema",
         action="store_true",
@@ -57,7 +62,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _build_dataloader(dataset, batch_size: int, num_workers: int, shuffle: bool, cfg: dict, sampler=None):
+def _build_dataloader(
+    dataset, batch_size: int, num_workers: int, shuffle: bool, cfg: dict, sampler=None
+):
     use_pin_memory = bool(cfg.get("pin_memory", True)) and torch.cuda.is_available()
     return DataLoader(
         dataset,
@@ -83,12 +90,20 @@ def _resolve_staged_training_config(config: dict, args: argparse.Namespace) -> d
     )
     expected_parent_stages = normalize_stage_list(staged_cfg.get("expected_parent_stages"))
 
-    parent_checkpoint = args.init_ckpt or staged_cfg.get("parent_checkpoint") or train_cfg.get("init_checkpoint")
+    parent_checkpoint = (
+        args.init_ckpt or staged_cfg.get("parent_checkpoint") or train_cfg.get("init_checkpoint")
+    )
     parent_checkpoint = resolve_optional_path(parent_checkpoint)
-    parent_use_ema = bool(args.init_use_ema or staged_cfg.get("parent_use_ema", False) or train_cfg.get("init_use_ema", False))
+    parent_use_ema = bool(
+        args.init_use_ema
+        or staged_cfg.get("parent_use_ema", False)
+        or train_cfg.get("init_use_ema", False)
+    )
 
     if stage_name == "classifier_rebalance" and trainable_scope != "classifier_only":
-        raise ValueError("classifier_rebalance stage must use staged_training.trainable_scope=classifier_only.")
+        raise ValueError(
+            "classifier_rebalance stage must use staged_training.trainable_scope=classifier_only."
+        )
     if trainable_scope == "classifier_only":
         require_parent_checkpoint = True
     if require_parent_checkpoint and parent_checkpoint is None:
@@ -131,7 +146,9 @@ def _resolve_staged_training_config(config: dict, args: argparse.Namespace) -> d
     return resolved
 
 
-def _validate_parent_checkpoint_context(config: dict, staged_cfg: dict, parent_checkpoint: dict) -> None:
+def _validate_parent_checkpoint_context(
+    config: dict, staged_cfg: dict, parent_checkpoint: dict
+) -> None:
     if not staged_cfg.get("parent_checkpoint"):
         return
 
@@ -161,8 +178,13 @@ def _validate_parent_checkpoint_context(config: dict, staged_cfg: dict, parent_c
 
 
 def main() -> None:
+    """Build the training stack, fit the model, and persist run artifacts."""
     args = parse_args()
-    extra_cfgs = [p for p in [args.model_config, args.train_config, args.aug_config, args.inference_config] if p]
+    extra_cfgs = [
+        p
+        for p in [args.model_config, args.train_config, args.aug_config, args.inference_config]
+        if p
+    ]
     config = merge_yaml_configs(args.config, extra_cfgs)
 
     if args.output_dir is not None:
@@ -296,7 +318,9 @@ def main() -> None:
 
     class_weights = config["loss"].get("class_weights")
     class_weights_tensor = (
-        torch.tensor(class_weights, dtype=torch.float, device=device) if class_weights is not None else None
+        torch.tensor(class_weights, dtype=torch.float, device=device)
+        if class_weights is not None
+        else None
     )
     class_counts = compute_class_counts(bundle.train_df, num_classes=num_classes)
     class_counts_tensor = torch.tensor(class_counts, dtype=torch.float, device=device)

@@ -26,7 +26,9 @@ def evaluate_stage_gate(
     metric_value = stage_gate_cfg.get("metric") if stage_gate_cfg else None
     pass_threshold = stage_gate_cfg.get("pass_threshold") if stage_gate_cfg else None
     fail_threshold = stage_gate_cfg.get("fail_threshold") if stage_gate_cfg else None
-    if not stage_gate_cfg or (metric_value in {None, ""} and pass_threshold is None and fail_threshold is None):
+    if not stage_gate_cfg or (
+        metric_value in {None, ""} and pass_threshold is None and fail_threshold is None
+    ):
         return {
             "status": "not_configured",
             "metric": default_metric,
@@ -120,7 +122,9 @@ def write_run_metadata(
             "stage_gate": stage_gate,
         },
         "loss_runtime": summary.get("loss_runtime", config.get("loss_runtime", {})),
-        "staged_training": summary.get("staged_training", config.get("staged_training_runtime", {})),
+        "staged_training": summary.get(
+            "staged_training", config.get("staged_training_runtime", {})
+        ),
         "artifacts": {
             "config_snapshot": str(run_dir / "config.yaml"),
             "summary_json": str(run_dir / "summary.json"),

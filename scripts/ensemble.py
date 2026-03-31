@@ -20,9 +20,12 @@ from src.utils.misc import ensure_dir  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for hard or soft ensembling."""
     parser = argparse.ArgumentParser(description="Ensemble multiple prediction CSV files.")
     parser.add_argument("--mode", choices=["hard", "soft"], default="hard", help="Ensemble mode.")
-    parser.add_argument("--preds", nargs="*", default=None, help="Prediction CSV paths for hard voting.")
+    parser.add_argument(
+        "--preds", nargs="*", default=None, help="Prediction CSV paths for hard voting."
+    )
     parser.add_argument(
         "--prob-files",
         nargs="*",
@@ -35,8 +38,12 @@ def parse_args() -> argparse.Namespace:
         default="probs",
         help="Which array to fuse in soft mode.",
     )
-    parser.add_argument("--weights", nargs="*", type=float, default=None, help="Optional per-file weights.")
-    parser.add_argument("--idx-to-label", type=str, default=None, help="Path to idx_to_label.json for soft mode.")
+    parser.add_argument(
+        "--weights", nargs="*", type=float, default=None, help="Optional per-file weights."
+    )
+    parser.add_argument(
+        "--idx-to-label", type=str, default=None, help="Path to idx_to_label.json for soft mode."
+    )
     parser.add_argument("--id-column", type=str, default="image_name")
     parser.add_argument("--target-column", type=str, default="pred_label")
     parser.add_argument("--output-dir", type=str, default="outputs/ensemble")
@@ -57,6 +64,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def weighted_vote(row_values, weights):
+    """Return the label with the largest accumulated vote weight."""
     score = {}
     for value, w in zip(row_values, weights):
         score[value] = score.get(value, 0.0) + w
@@ -75,7 +83,9 @@ def _load_idx_to_label(path: Path) -> dict[int, str]:
     return {int(k): str(v) for k, v in data.items()}
 
 
-def _resolve_idx_to_label(prob_paths: list[Path], override_path: str | None) -> dict[int, str] | None:
+def _resolve_idx_to_label(
+    prob_paths: list[Path], override_path: str | None
+) -> dict[int, str] | None:
     if override_path:
         p = Path(override_path)
         if not p.exists():
@@ -109,6 +119,7 @@ def _load_prob_artifact(path: Path, prob_key: str) -> tuple[list[str], np.ndarra
 
 
 def main() -> None:
+    """Fuse predictions and export a competition-style submission file."""
     args = parse_args()
     output_dir = ensure_dir(args.output_dir)
     if args.mode == "hard":
@@ -129,7 +140,9 @@ def main() -> None:
         for idx, frame in enumerate(frames[1:], start=1):
             ids = frame[args.id_column].astype(str).tolist()
             if ids != base_ids:
-                raise ValueError(f"ID order mismatch in prediction file index {idx}: {csv_paths[idx]}")
+                raise ValueError(
+                    f"ID order mismatch in prediction file index {idx}: {csv_paths[idx]}"
+                )
 
         weights = args.weights if args.weights else [1.0] * len(frames)
         if len(weights) != len(frames):

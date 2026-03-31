@@ -30,7 +30,9 @@ def build_optimizer(model: torch.nn.Module, optimizer_cfg: Dict) -> torch.optim.
     wd = float(optimizer_cfg.get("weight_decay", 0.0))
     params = [param for param in model.parameters() if param.requires_grad]
     if not params:
-        raise ValueError("No trainable parameters remain after staged-training scope configuration.")
+        raise ValueError(
+            "No trainable parameters remain after staged-training scope configuration."
+        )
 
     if name == "adamw":
         return torch.optim.AdamW(params, lr=lr, weight_decay=wd)
@@ -144,7 +146,9 @@ def _select_metric_block(
         selected_metrics = raw_metrics
     elif source == "ema":
         if ema_metrics is None:
-            raise ValueError("Model-selection source 'ema' requested but EMA metrics are unavailable.")
+            raise ValueError(
+                "Model-selection source 'ema' requested but EMA metrics are unavailable."
+            )
         selected_source = "ema"
         selected_metrics = ema_metrics
     else:
@@ -157,7 +161,13 @@ def _select_metric_block(
 
     if metric_name not in selected_metrics:
         raise ValueError(f"Selected metric '{metric_name}' is unavailable in validation metrics.")
-    return selected_source, selected_metrics, metric_name, mode, float(selected_metrics[metric_name])
+    return (
+        selected_source,
+        selected_metrics,
+        metric_name,
+        mode,
+        float(selected_metrics[metric_name]),
+    )
 
 
 def _retain_top_k_checkpoints(
@@ -169,7 +179,9 @@ def _retain_top_k_checkpoints(
         return records
 
     reverse = mode == "max"
-    ranked = sorted(records, key=lambda item: (item["selection_metric_value"], -item["epoch"]), reverse=reverse)
+    ranked = sorted(
+        records, key=lambda item: (item["selection_metric_value"], -item["epoch"]), reverse=reverse
+    )
     keep = ranked[:keep_top_k]
     keep_paths = {record["path"] for record in keep}
     for record in records:
@@ -255,7 +267,9 @@ def train_one_epoch(
         images = images.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
 
-        images, targets_a, targets_b, lam, is_mixed = _apply_mixup_or_cutmix(images, targets, mix_cfg)
+        images, targets_a, targets_b, lam, is_mixed = _apply_mixup_or_cutmix(
+            images, targets, mix_cfg
+        )
 
         optimizer.zero_grad(set_to_none=True)
         autocast_enabled = amp and device.type == "cuda"
@@ -265,7 +279,9 @@ def train_one_epoch(
         ):
             logits = model(images)
             if is_mixed:
-                loss = lam * criterion(logits, targets_a) + (1.0 - lam) * criterion(logits, targets_b)
+                loss = lam * criterion(logits, targets_a) + (1.0 - lam) * criterion(
+                    logits, targets_b
+                )
             else:
                 loss = criterion(logits, targets)
 
@@ -420,7 +436,9 @@ def fit(
             selection_cfg=selection_cfg,
         )
 
-        is_best_selected = _is_better(selection_metric_value, selection_best_value, selection_mode_name)
+        is_best_selected = _is_better(
+            selection_metric_value, selection_best_value, selection_mode_name
+        )
         if is_best_selected:
             selection_best_value = selection_metric_value
             best_epoch = epoch

@@ -34,4 +34,3 @@ def setup_logger(name: str, log_file: Optional[Path] = None) -> logging.Logger:
         logger.addHandler(file_handler)
 
     return logger
-

@@ -20,6 +20,7 @@ class AverageMeter:
     count: int = 0
 
     def update(self, value: float, n: int = 1) -> None:
+        """Accumulate a new observation into the running average."""
         self.value = value
         self.sum += value * n
         self.count += n
