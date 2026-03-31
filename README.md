@@ -194,4 +194,4 @@ Recent validated `target099` checkpoints on the `300`-image local validation spl
 | ResNet101 LDAM-DRW | selected checkpoint | 89.00 | 3.3001 | 0.8478 | implemented correctly, killed experimentally |
 
 
-![Leaderboard Performance](src\img\Leaderboard.png)
+![Leaderboard Performance](src/img/Leaderboard.png)
