@@ -192,3 +192,6 @@ Recent validated `target099` checkpoints on the `300`-image local validation spl
 | ResNet101 CRT FixRes | selected checkpoint | 90.33 | 0.3587 | 0.0261 | strongest calibration-oriented run |
 | ResNeXt50-32x3d probe | `best_raw.ckpt` | 89.00 | 0.4936 | 0.0713 | keep only as possible ensemble candidate |
 | ResNet101 LDAM-DRW | selected checkpoint | 89.00 | 3.3001 | 0.8478 | implemented correctly, killed experimentally |
+
+
+![Leaderboard Performance](src\img\Leaderboard.png)
