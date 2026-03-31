@@ -1,0 +1,11 @@
+model:
+  name: resnet152
+  pretrained: true
+  num_classes: 100
+  dropout: 0.0
+  resnetd: false
+  attention: none
+  se_mode: none
+  se_reduction: 16
+  drop_path_rate: 0.0
+  param_limit_million: 100

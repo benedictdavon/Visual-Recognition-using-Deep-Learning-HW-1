@@ -1,0 +1,36 @@
+optimizer:
+  name: sgd
+  lr: 0.05
+  weight_decay: 0.0001
+  momentum: 0.9
+
+scheduler:
+  name: cosine
+  epochs: 40
+  warmup_epochs: 5
+  min_lr_ratio: 0.001
+
+loss:
+  name: cross_entropy
+  label_smoothing: 0.1
+  focal_gamma: 2.0
+  class_weights: null
+
+mixup_cutmix:
+  enabled: true
+  mixup_alpha: 0.2
+  cutmix_alpha: 1.0
+  prob: 0.7
+
+train:
+  epochs: 40
+  amp: true
+  grad_clip_norm: 1.0
+  log_interval: 50
+  early_stopping:
+    enabled: true
+    patience: 8
+  ema:
+    enabled: true
+    decay: 0.9999
+

@@ -1,0 +1,75 @@
+# Python cache / bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+.conda/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local agent / workspace helpers
+.codex/
+agent/
+
+# Logs and outputs
+outputs/*
+!outputs/.gitkeep
+*.log
+*.out
+*.crdownload
+
+# Model artifacts
+*.ckpt
+*.pth
+*.pt
+*.onnx
+
+# Local datasets / archives
+data/
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+
+# Local machine files
+.env
+.python-version
+
+# Repo-local large or personal files
+/cv_hw1_data.tar
+/(114-2) HW1 Slides.pdf
+/py.out

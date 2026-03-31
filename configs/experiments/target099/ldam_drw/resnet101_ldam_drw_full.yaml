@@ -1,0 +1,122 @@
+project:
+  experiment_name: target099_ldam_drw_resnet101
+  seed: 2026
+
+experiment:
+  stage: stage0_ldam_drw
+  rationale: Probe LDAM plus deferred late-stage class reweighting on the legal ResNet101 anchor without changing the backbone family.
+  notes: Compare directly against the current ResNet101 non-LDAM anchors. Keep this path only if it improves val_nll or macro recall without an unacceptable val_acc regression.
+  tags: [target099, stage0, ldam_drw, resnet101]
+  expected_artifacts:
+    - summary.json
+    - run_metadata.json
+    - history.csv
+    - checkpoints/best.ckpt
+    - checkpoints/epoch_*.ckpt
+  stage_gate:
+    metric: val_nll
+    mode: min
+    pass_threshold: 0.55
+    fail_threshold: 0.70
+
+dataset:
+  image_size: 256
+
+dataloader:
+  batch_size: 32
+  val_batch_size: 64
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: true
+
+sampler:
+  name: none
+
+model:
+  name: resnet101
+  pretrained: true
+  num_classes: 100
+  dropout: 0.0
+  resnetd: false
+  attention: none
+  param_limit_million: 100
+
+augmentation:
+  preset: strong
+  train:
+    random_resized_crop: true
+    resize_only: false
+    hflip_prob: 0.5
+    randaugment:
+      enabled: true
+      num_ops: 2
+      magnitude: 5
+    color_jitter:
+      enabled: false
+      brightness: 0.3
+      contrast: 0.3
+      saturation: 0.3
+      hue: 0.1
+    random_erasing:
+      enabled: true
+      prob: 0.25
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+  eval:
+    resize: 288
+    center_crop: 256
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+
+mixup_cutmix:
+  enabled: true
+  mixup_alpha: 0.2
+  cutmix_alpha: 1.0
+  prob: 0.5
+
+loss:
+  name: ldam
+  label_smoothing: 0.0
+  focal_gamma: 2.0
+  logit_adjusted_tau: 1.0
+  ldam_max_margin: 0.5
+  ldam_scale: 30.0
+  class_weights: null
+  deferred_reweighting:
+    enabled: true
+    start_epoch: 25
+    power: 1.0
+    normalize: mean_one
+
+optimizer:
+  name: adamw
+  lr: 0.0003
+  weight_decay: 0.05
+  momentum: 0.9
+
+scheduler:
+  name: cosine
+  epochs: 35
+  warmup_epochs: 3
+  min_lr_ratio: 0.01
+
+train:
+  epochs: 35
+  amp: true
+  grad_clip_norm: 1.0
+  log_interval: 50
+  init_checkpoint: null
+  init_use_ema: false
+  early_stopping:
+    enabled: true
+    patience: 8
+  ema:
+    enabled: true
+    decay: 0.9999
+  model_selection:
+    source: auto
+    metric: val_nll
+    mode: min
+  checkpointing:
+    save_every_epoch: true
+    keep_top_k: 5

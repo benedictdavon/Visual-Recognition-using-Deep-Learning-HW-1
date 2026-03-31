@@ -1,0 +1,53 @@
+base_config: configs/config.yaml
+continue_on_error: false
+
+# Fill run_dir values with actual run directories produced by:
+# python scripts/train_batch.py --batch-config configs/batch/train_fixres320_short3_3seeds.yaml
+jobs:
+  - name: fixres320_seed42_short3_raw_tta
+    train_config: configs/experiments/fixres320_seed42_short3.yaml
+    run_dir: REPLACE_WITH_RUN_DIR_FOR_FIXRES320_SEED42_SHORT3
+    checkpoint_name: best_raw
+    use_ema: false
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed42_short3_ema_tta
+    train_config: configs/experiments/fixres320_seed42_short3.yaml
+    run_dir: REPLACE_WITH_RUN_DIR_FOR_FIXRES320_SEED42_SHORT3
+    checkpoint_name: best_ema
+    use_ema: true
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed3407_short3_raw_tta
+    train_config: configs/experiments/fixres320_seed3407_short3.yaml
+    run_dir: REPLACE_WITH_RUN_DIR_FOR_FIXRES320_SEED3407_SHORT3
+    checkpoint_name: best_raw
+    use_ema: false
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed3407_short3_ema_tta
+    train_config: configs/experiments/fixres320_seed3407_short3.yaml
+    run_dir: REPLACE_WITH_RUN_DIR_FOR_FIXRES320_SEED3407_SHORT3
+    checkpoint_name: best_ema
+    use_ema: true
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed2026_short3_raw_tta
+    train_config: configs/experiments/fixres320_seed2026_short3.yaml
+    run_dir: REPLACE_WITH_RUN_DIR_FOR_FIXRES320_SEED2026_SHORT3
+    checkpoint_name: best_raw
+    use_ema: false
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed2026_short3_ema_tta
+    train_config: configs/experiments/fixres320_seed2026_short3.yaml
+    run_dir: REPLACE_WITH_RUN_DIR_FOR_FIXRES320_SEED2026_SHORT3
+    checkpoint_name: best_ema
+    use_ema: true
+    tta: true
+    save_probs: true

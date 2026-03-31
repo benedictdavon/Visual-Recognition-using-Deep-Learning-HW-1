@@ -1,0 +1,36 @@
+anchor: target099_fixres_anchor_ema
+metric: val_nll
+require_branch_provenance: true
+treat_branch_variants_as_distinct: true
+thresholds:
+  val_gap_tolerance: 0.8
+  min_val_disagreement: 0.03
+  min_test_disagreement: 0.03
+  min_rescue_count: 2
+  min_js_divergence: 0.0
+  max_per_family: 2
+
+candidates:
+  - name: target099_fixres_anchor_ema
+    family: target099_fixres_anchor
+    branch: ema
+    selection_group: target099_fixres_anchor:ema
+    val_metrics: REPLACE_WITH_VALIDATE_METRICS_FOR_ANCHOR
+    val_artifact: REPLACE_WITH_VAL_ARTIFACT_FOR_ANCHOR
+    test_artifact: REPLACE_WITH_TEST_ARTIFACT_FOR_ANCHOR
+
+  - name: target099_resnext50_32x3d_probe_raw
+    family: target099_resnext50_32x3d_probe
+    branch: raw
+    selection_group: target099_resnext50_32x3d_probe:raw
+    val_metrics: REPLACE_WITH_VALIDATE_METRICS_FOR_PROBE_RAW
+    val_artifact: REPLACE_WITH_VAL_ARTIFACT_FOR_PROBE_RAW
+    test_artifact: REPLACE_WITH_TEST_ARTIFACT_FOR_PROBE_RAW
+
+  - name: target099_resnext50_32x3d_probe_ema
+    family: target099_resnext50_32x3d_probe
+    branch: ema
+    selection_group: target099_resnext50_32x3d_probe:ema
+    val_metrics: REPLACE_WITH_VALIDATE_METRICS_FOR_PROBE_EMA
+    val_artifact: REPLACE_WITH_VAL_ARTIFACT_FOR_PROBE_EMA
+    test_artifact: REPLACE_WITH_TEST_ARTIFACT_FOR_PROBE_EMA

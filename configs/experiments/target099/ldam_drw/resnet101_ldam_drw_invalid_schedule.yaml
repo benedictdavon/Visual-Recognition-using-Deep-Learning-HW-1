@@ -1,0 +1,117 @@
+project:
+  experiment_name: target099_ldam_drw_invalid_schedule
+  seed: 2026
+
+experiment:
+  stage: stage0_ldam_drw_negative
+  rationale: Fail-fast verification for invalid deferred reweighting boundaries.
+  notes: This config should never launch training because the deferred reweighting start epoch falls outside the configured run length.
+  tags: [target099, ldam_drw, negative, invalid_schedule]
+  expected_artifacts: []
+  stage_gate:
+    metric: val_nll
+    mode: min
+    pass_threshold: null
+    fail_threshold: null
+
+dataset:
+  image_size: 224
+
+dataloader:
+  batch_size: 96
+  val_batch_size: 128
+  num_workers: 0
+  pin_memory: true
+  persistent_workers: false
+
+sampler:
+  name: none
+
+model:
+  name: resnet101
+  pretrained: true
+  num_classes: 100
+  dropout: 0.0
+  resnetd: false
+  attention: none
+  param_limit_million: 100
+
+augmentation:
+  preset: basic
+  train:
+    random_resized_crop: true
+    resize_only: false
+    hflip_prob: 0.5
+    randaugment:
+      enabled: false
+      num_ops: 2
+      magnitude: 5
+    color_jitter:
+      enabled: false
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+    random_erasing:
+      enabled: false
+      prob: 0.0
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+  eval:
+    resize: 256
+    center_crop: 224
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+
+mixup_cutmix:
+  enabled: false
+  mixup_alpha: 0.2
+  cutmix_alpha: 1.0
+  prob: 0.0
+
+loss:
+  name: ldam
+  label_smoothing: 0.0
+  focal_gamma: 2.0
+  logit_adjusted_tau: 1.0
+  ldam_max_margin: 0.5
+  ldam_scale: 30.0
+  class_weights: null
+  deferred_reweighting:
+    enabled: true
+    start_epoch: 3
+    power: 1.0
+    normalize: mean_one
+
+optimizer:
+  name: adamw
+  lr: 0.0003
+  weight_decay: 0.01
+  momentum: 0.9
+
+scheduler:
+  name: cosine
+  epochs: 2
+  warmup_epochs: 0
+  min_lr_ratio: 0.1
+
+train:
+  epochs: 2
+  amp: true
+  grad_clip_norm: 1.0
+  log_interval: 20
+  init_checkpoint: null
+  init_use_ema: false
+  early_stopping:
+    enabled: false
+    patience: 2
+  ema:
+    enabled: false
+    decay: 0.9998
+  model_selection:
+    source: raw
+    metric: val_nll
+    mode: min
+  checkpointing:
+    save_every_epoch: false
+    keep_top_k: 0

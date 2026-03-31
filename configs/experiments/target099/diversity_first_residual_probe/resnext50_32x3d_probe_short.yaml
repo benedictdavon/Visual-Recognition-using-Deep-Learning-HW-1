@@ -1,0 +1,118 @@
+project:
+  experiment_name: target099_diversity_probe_resnext50_32x3d_short
+  seed: 2026
+
+experiment:
+  stage: short_probe
+  rationale: Cheap diversity-first probe for the already-supported ResNeXt-50 32x3d branch against the current ResNet101 anchor.
+  notes: Continue only if the run stays near the anchor locally and later branch-aware diversity evidence shows real rescue or disagreement value. Do not promote this path to anchor status from single-model rank alone.
+  tags: [target099, diversity_probe, short_probe, resnext50_32x3d, branch_aware]
+  expected_artifacts:
+    - summary.json
+    - run_metadata.json
+    - history.csv
+    - checkpoints/best.ckpt
+    - checkpoints/best_raw.ckpt
+    - checkpoints/best_ema.ckpt
+    - checkpoints/epoch_*.ckpt
+  stage_gate:
+    metric: val_acc
+    mode: max
+    pass_threshold: 88.5
+    fail_threshold: 86.0
+
+dataset:
+  image_size: 256
+
+dataloader:
+  batch_size: 48
+  val_batch_size: 96
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: true
+
+sampler:
+  name: none
+
+model:
+  name: resnext50_32x3d
+  pretrained: true
+  custom_pretrained_init: resnext50_32x4d_slice
+  num_classes: 100
+  dropout: 0.0
+  resnetd: false
+  attention: none
+  param_limit_million: 100
+
+augmentation:
+  preset: strong
+  train:
+    random_resized_crop: true
+    resize_only: false
+    hflip_prob: 0.5
+    randaugment:
+      enabled: true
+      num_ops: 2
+      magnitude: 5
+    color_jitter:
+      enabled: false
+      brightness: 0.3
+      contrast: 0.3
+      saturation: 0.3
+      hue: 0.1
+    random_erasing:
+      enabled: true
+      prob: 0.25
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+  eval:
+    resize: 288
+    center_crop: 256
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+
+mixup_cutmix:
+  enabled: true
+  mixup_alpha: 0.2
+  cutmix_alpha: 1.0
+  prob: 0.5
+
+loss:
+  name: logit_adjusted_ce
+  label_smoothing: 0.05
+  focal_gamma: 2.0
+  logit_adjusted_tau: 1.0
+  class_weights: null
+
+optimizer:
+  name: adamw
+  lr: 0.0003
+  weight_decay: 0.05
+  momentum: 0.9
+
+scheduler:
+  name: cosine
+  epochs: 8
+  warmup_epochs: 1
+  min_lr_ratio: 0.05
+
+train:
+  epochs: 8
+  amp: true
+  grad_clip_norm: 1.0
+  log_interval: 50
+  init_checkpoint: null
+  init_use_ema: false
+  early_stopping:
+    enabled: true
+    patience: 4
+  ema:
+    enabled: true
+    decay: 0.9999
+  model_selection:
+    source: auto
+    metric: val_nll
+    mode: min
+  checkpointing:
+    save_every_epoch: true
+    keep_top_k: 4

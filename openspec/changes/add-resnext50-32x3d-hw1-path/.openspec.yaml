@@ -1,0 +1,8 @@
+name: add-resnext50-32x3d-hw1-path
+schema: spec-driven
+status: proposed
+created: 2026-03-28
+artifacts:
+  - proposal.md
+  - design.md
+  - tasks.md

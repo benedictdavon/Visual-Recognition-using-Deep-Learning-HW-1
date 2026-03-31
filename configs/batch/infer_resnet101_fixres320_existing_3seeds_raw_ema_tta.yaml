@@ -1,0 +1,51 @@
+base_config: configs/config.yaml
+continue_on_error: false
+
+jobs:
+  - name: fixres320_seed42_raw_tta
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed42.yaml
+    run_dir: outputs/20260316_181147_resnet101_fixres_finetune_320_seed42
+    checkpoint_name: best_raw
+    use_ema: false
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed42_ema_tta
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed42.yaml
+    run_dir: outputs/20260316_181147_resnet101_fixres_finetune_320_seed42
+    checkpoint_name: best_ema
+    use_ema: true
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed3407_raw_tta
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed3407.yaml
+    run_dir: outputs/20260316_184045_resnet101_fixres_finetune_320_seed3407
+    checkpoint_name: best_raw
+    use_ema: false
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed3407_ema_tta
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed3407.yaml
+    run_dir: outputs/20260316_184045_resnet101_fixres_finetune_320_seed3407
+    checkpoint_name: best_ema
+    use_ema: true
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed2026_raw_tta
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed2026.yaml
+    run_dir: outputs/20260316_190430_resnet101_fixres_finetune_320_seed2026
+    checkpoint_name: best_raw
+    use_ema: false
+    tta: true
+    save_probs: true
+
+  - name: fixres320_seed2026_ema_tta
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed2026.yaml
+    run_dir: outputs/20260316_190430_resnet101_fixres_finetune_320_seed2026
+    checkpoint_name: best_ema
+    use_ema: true
+    tta: true
+    save_probs: true

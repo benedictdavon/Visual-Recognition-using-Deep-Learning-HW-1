@@ -1,0 +1,12 @@
+base_config: configs/config.yaml
+continue_on_error: false
+
+jobs:
+  - name: resnet101_strong_v2_fast_seed42
+    train_config: configs/experiments/resnet101_strong_v2_fast_seed42.yaml
+
+  - name: resnet101_strong_v2_fast_seed3407
+    train_config: configs/experiments/resnet101_strong_v2_fast_seed3407.yaml
+
+  - name: resnet101_strong_v2_fast_seed2026
+    train_config: configs/experiments/resnet101_strong_v2_fast_seed2026.yaml

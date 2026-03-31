@@ -1,0 +1,11 @@
+model:
+  name: resnext101_32x8d_d_bse_sd
+  pretrained: true
+  num_classes: 100
+  dropout: 0.0
+  resnetd: true
+  attention: none
+  se_mode: bottleneck
+  se_reduction: 16
+  drop_path_rate: 0.10
+  param_limit_million: 100

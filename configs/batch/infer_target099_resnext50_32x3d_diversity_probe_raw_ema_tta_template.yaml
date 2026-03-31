@@ -1,0 +1,20 @@
+base_config: configs/config.yaml
+continue_on_error: false
+
+# Fill run_dir with the actual probe run directory.
+jobs:
+  - name: target099_resnext50_32x3d_probe_raw_tta
+    train_config: configs/experiments/target099/diversity_first_residual_probe/resnext50_32x3d_probe_full.yaml
+    run_dir: REPLACE_WITH_TARGET099_RESNEXT50_32X3D_PROBE_RUN_DIR
+    checkpoint_name: best_raw
+    use_ema: false
+    tta: true
+    save_probs: true
+
+  - name: target099_resnext50_32x3d_probe_ema_tta
+    train_config: configs/experiments/target099/diversity_first_residual_probe/resnext50_32x3d_probe_full.yaml
+    run_dir: REPLACE_WITH_TARGET099_RESNEXT50_32X3D_PROBE_RUN_DIR
+    checkpoint_name: best_ema
+    use_ema: true
+    tta: true
+    save_probs: true

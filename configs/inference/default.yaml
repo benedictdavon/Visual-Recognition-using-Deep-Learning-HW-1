@@ -1,0 +1,8 @@
+inference:
+  tta:
+    enabled: false
+    horizontal_flip: true
+  output:
+    id_column: image_name
+    target_column: pred_label
+    use_label_name: true

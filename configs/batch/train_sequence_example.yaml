@@ -1,0 +1,12 @@
+base_config: configs/config.yaml
+continue_on_error: false
+
+jobs:
+  - name: resnet101_strong_v2_fast
+    train_config: configs/experiments/resnet101_strong_v2_fast.yaml
+
+  - name: resnet101_fixres_finetune_288
+    train_config: configs/experiments/resnet101_fixres_finetune_288.yaml
+
+  - name: resnet101_fixres_finetune_320
+    train_config: configs/experiments/resnet101_fixres_finetune_320.yaml

@@ -1,0 +1,21 @@
+base_config: configs/config.yaml
+continue_on_error: false
+
+jobs:
+  - name: resnet101_fixres_finetune_320_seed42
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed42.yaml
+    init_from_run_dir: outputs/20260314_001338_resnet101_strong_v2_fast_seed42
+    init_checkpoint_name: best_ema
+    init_use_ema: true
+
+  - name: resnet101_fixres_finetune_320_seed3407
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed3407.yaml
+    init_from_run_dir: outputs/20260314_013534_resnet101_strong_v2_fast_seed3407
+    init_checkpoint_name: best_ema
+    init_use_ema: true
+
+  - name: resnet101_fixres_finetune_320_seed2026
+    train_config: configs/experiments/resnet101_fixres_finetune_320_seed2026.yaml
+    init_from_run_dir: outputs/20260314_030251_resnet101_strong_v2_fast_seed2026
+    init_checkpoint_name: best_ema
+    init_use_ema: true

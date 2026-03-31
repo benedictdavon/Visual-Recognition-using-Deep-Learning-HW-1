@@ -1,0 +1,15 @@
+schema: spec-driven
+
+context: |
+  Project: Visual Recognition using Deep Learning HW1 image classification repository.
+  Authoritative spec files live under openspec/specs/.
+  This is a brownfield PyTorch repo with thin CLI entrypoints in scripts/, reusable code in src/, config layering in configs/, and run artifacts in outputs/.
+  Hard homework guardrails:
+  - Backbone must remain in the ResNet family.
+  - Model size must remain strictly below the configured 100M parameter limit enforced by src/models/builder.py.
+  - No external data.
+  - Submission compatibility must remain centered on prediction.csv.
+  - The default workflow must remain practical on a single GPU and sequential batch scripts.
+  Current policy context:
+  - TA clarification allows methods extended or improved from ResNet, provided the residual lineage remains clear and the report cites and explains the change.
+  - Code support does not automatically make a model homework-safe; legality tiers are defined in the specs.

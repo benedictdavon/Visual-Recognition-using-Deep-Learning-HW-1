@@ -1,0 +1,21 @@
+base_config: configs/config.yaml
+continue_on_error: false
+
+jobs:
+  - name: resnet101_v2_fast_seed42_ema
+    train_config: configs/experiments/resnet101_strong_v2_fast_seed42.yaml
+    run_dir: outputs/20260314_001338_resnet101_strong_v2_fast_seed42
+    checkpoint_name: best_ema
+    use_ema: true
+
+  - name: resnet101_v2_fast_seed3407_ema
+    train_config: configs/experiments/resnet101_strong_v2_fast_seed3407.yaml
+    run_dir: outputs/20260314_013534_resnet101_strong_v2_fast_seed3407
+    checkpoint_name: best_ema
+    use_ema: true
+
+  - name: resnet101_v2_fast_seed2026_ema
+    train_config: configs/experiments/resnet101_strong_v2_fast_seed2026.yaml
+    run_dir: outputs/20260314_030251_resnet101_strong_v2_fast_seed2026
+    checkpoint_name: best_ema
+    use_ema: true

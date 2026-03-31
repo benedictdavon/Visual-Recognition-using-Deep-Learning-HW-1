@@ -1,0 +1,14 @@
+name: vr_hw1
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pandas
+  - scikit-learn
+  - pillow
+  - tqdm
+  - pyyaml
+  - pip:
+      - -r requirements.txt

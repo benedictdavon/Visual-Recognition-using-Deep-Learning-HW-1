@@ -1,0 +1,129 @@
+project:
+  experiment_name: target099_crt_fixres320_from_rebalance_template
+  seed: 2026
+
+experiment:
+  stage: stage_crt_fixres
+  rationale: Keep FixRes as an explicit optional continuation after classifier rebalance rather than as part of the rebalance stage itself.
+  notes: Point staged_training.parent_checkpoint at the selected rebalance checkpoint or pass --init-ckpt. This continuation should be evaluated as a third stage in the same evidence bundle.
+  tags: [target099, crt, fixres, from_rebalance, template]
+  expected_artifacts:
+    - summary.json
+    - run_metadata.json
+    - history.csv
+    - checkpoints/best.ckpt
+    - checkpoints/epoch_*.ckpt
+  stage_gate:
+    metric: val_nll
+    mode: min
+    pass_threshold: 0.60
+    fail_threshold: 0.75
+
+dataset:
+  image_size: 320
+
+dataloader:
+  batch_size: 12
+  val_batch_size: 24
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: true
+
+sampler:
+  name: none
+
+model:
+  name: resnet101
+  pretrained: true
+  num_classes: 100
+  dropout: 0.0
+  resnetd: false
+  attention: none
+  param_limit_million: 100
+
+augmentation:
+  preset: basic
+  train:
+    random_resized_crop: true
+    resize_only: false
+    hflip_prob: 0.5
+    randaugment:
+      enabled: false
+      num_ops: 2
+      magnitude: 5
+    color_jitter:
+      enabled: false
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+    random_erasing:
+      enabled: false
+      prob: 0.0
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+  eval:
+    resize: 352
+    center_crop: 320
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+
+mixup_cutmix:
+  enabled: false
+  mixup_alpha: 0.2
+  cutmix_alpha: 1.0
+  prob: 0.0
+
+loss:
+  name: cross_entropy
+  label_smoothing: 0.02
+  focal_gamma: 2.0
+  logit_adjusted_tau: 1.0
+  class_weights: null
+
+optimizer:
+  name: adamw
+  lr: 0.00005
+  weight_decay: 0.01
+  momentum: 0.9
+
+scheduler:
+  name: cosine
+  epochs: 2
+  warmup_epochs: 0
+  min_lr_ratio: 0.3
+
+train:
+  epochs: 2
+  amp: true
+  grad_clip_norm: 1.0
+  log_interval: 50
+  init_checkpoint: null
+  init_use_ema: false
+  early_stopping:
+    enabled: false
+    patience: 2
+  ema:
+    enabled: true
+    decay: 0.9997
+  model_selection:
+    source: auto
+    metric: val_nll
+    mode: min
+  checkpointing:
+    save_every_epoch: true
+    keep_top_k: 2
+
+staged_training:
+  stage_name: fixres_refresh
+  trainable_scope: full_model
+  require_parent_checkpoint: true
+  parent_checkpoint: null
+  parent_use_ema: false
+  parent_run_dir: null
+  expected_parent_stages: [classifier_rebalance]
+  lineage:
+    base_checkpoint: null
+    base_run_dir: null
+    rebalance_checkpoint: null
+    rebalance_run_dir: null
