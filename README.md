@@ -1,5 +1,7 @@
 # VRDL Homework 1 - ResNet Family Classification Pipeline
 
+> Canonical portfolio entry point: [NYCU Visual Recognition using Deep Learning 2026](https://github.com/benedictdavon/nycu-visual-recognition-using-deep-learning-2026/tree/master/hw1-image-classification). This repository is the historical standalone project snapshot.
+
 ## Introduction
 
 This repository contains a reproducible PyTorch pipeline for the Visual Recognition using Deep Learning HW1
